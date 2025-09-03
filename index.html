@@ -52,13 +52,7 @@
       };
     }
 
-    function randomUnknown() {
-      return {
-        x: Math.random() * (CANVAS_SIZE - 2 * RADIUS) + RADIUS,
-        y: Math.random() * (CANVAS_SIZE - 2 * RADIUS) + RADIUS,
-        color: 'black'
-      };
-    }
+  // User will set unknown point by clicking on canvas
 
     function distance(a, b) {
       return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
@@ -89,17 +83,20 @@
       ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
       // Draw points
       for (const pt of points) drawPoint(pt);
-      // Draw unknown
-      drawPoint(unknown, true);
-      // Draw lines to neighbors if classified
-      if (classified) {
-        for (const n of neighbors) {
-          drawLine(unknown, n, '#888');
+      // Draw unknown if it exists
+      if (unknown) {
+        drawPoint(unknown, true);
+        // Draw lines to neighbors if classified
+        if (classified) {
+          for (const n of neighbors) {
+            drawLine(unknown, n, '#888');
+          }
         }
       }
     }
 
     function classify() {
+      if (!unknown) return;
       // Find k nearest neighbors
       neighbors = points
         .map(pt => ({ ...pt, dist: distance(pt, unknown) }))
@@ -115,7 +112,7 @@
 
     function reset() {
       points = Array.from({ length: POINTS_COUNT }, randomPoint);
-      unknown = randomUnknown();
+      unknown = null;
       classified = false;
       neighbors = [];
       draw();
@@ -129,6 +126,16 @@
     };
     classifyBtn.onclick = () => classify();
     resetBtn.onclick = () => reset();
+    // Add click event to canvas to set unknown point
+    canvas.onclick = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      unknown = { x, y, color: 'black' };
+      classified = false;
+      neighbors = [];
+      draw();
+    };
 
     // --- Init ---
     reset();
