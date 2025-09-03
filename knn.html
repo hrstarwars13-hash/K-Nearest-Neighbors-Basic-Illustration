@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>KNN Visualizer</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; background: #f9f9f9; }
+    #controls { margin: 20px; }
+    #canvas { background: #fff; border: 1px solid #ccc; }
+    button, input[type=range] { margin: 0 10px; }
+    label { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>K-Nearest Neighbors Visualizer</h2>
+  <div id="controls">
+    <label for="kRange">k:</label>
+    <input type="range" id="kRange" min="1" max="7" value="3">
+    <span id="kValue">3</span>
+    <button id="classifyBtn">Classify</button>
+    <button id="resetBtn">Reset</button>
+  </div>
+  <canvas id="canvas" width="500" height="500"></canvas>
+  <script>
+    // --- Config ---
+    const POINTS_COUNT = 30;
+    const COLORS = ['red', 'blue'];
+    const CANVAS_SIZE = 500;
+    const RADIUS = 8;
+
+    // --- State ---
+    let points = [];
+    let unknown = null;
+    let k = 3;
+    let classified = false;
+    let neighbors = [];
+
+    // --- DOM ---
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const kRange = document.getElementById('kRange');
+    const kValue = document.getElementById('kValue');
+    const classifyBtn = document.getElementById('classifyBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    // --- Functions ---
+    function randomPoint() {
+      return {
+        x: Math.random() * (CANVAS_SIZE - 2 * RADIUS) + RADIUS,
+        y: Math.random() * (CANVAS_SIZE - 2 * RADIUS) + RADIUS,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)]
+      };
+    }
+
+    function randomUnknown() {
+      return {
+        x: Math.random() * (CANVAS_SIZE - 2 * RADIUS) + RADIUS,
+        y: Math.random() * (CANVAS_SIZE - 2 * RADIUS) + RADIUS,
+        color: 'black'
+      };
+    }
+
+    function distance(a, b) {
+      return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+    }
+
+    function drawPoint(pt, outline = false) {
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, RADIUS, 0, 2 * Math.PI);
+      ctx.fillStyle = pt.color;
+      ctx.fill();
+      if (outline) {
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#333';
+        ctx.stroke();
+      }
+    }
+
+    function drawLine(a, b, color) {
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+      // Draw points
+      for (const pt of points) drawPoint(pt);
+      // Draw unknown
+      drawPoint(unknown, true);
+      // Draw lines to neighbors if classified
+      if (classified) {
+        for (const n of neighbors) {
+          drawLine(unknown, n, '#888');
+        }
+      }
+    }
+
+    function classify() {
+      // Find k nearest neighbors
+      neighbors = points
+        .map(pt => ({ ...pt, dist: distance(pt, unknown) }))
+        .sort((a, b) => a.dist - b.dist)
+        .slice(0, k);
+      // Count colors
+      const reds = neighbors.filter(n => n.color === 'red').length;
+      const blues = neighbors.filter(n => n.color === 'blue').length;
+      unknown.color = reds > blues ? 'red' : 'blue';
+      classified = true;
+      draw();
+    }
+
+    function reset() {
+      points = Array.from({ length: POINTS_COUNT }, randomPoint);
+      unknown = randomUnknown();
+      classified = false;
+      neighbors = [];
+      draw();
+    }
+
+    // --- Events ---
+    kRange.oninput = () => {
+      k = parseInt(kRange.value, 10);
+      kValue.textContent = k;
+      if (classified) classify();
+    };
+    classifyBtn.onclick = () => classify();
+    resetBtn.onclick = () => reset();
+
+    // --- Init ---
+    reset();
+  </script>
+</body>
+</html>
